@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, RandomCrop, ColorJitter
 # centercrop : 중앙 기준으로 크롭, colorjitter 컬러 변경
 
 IMG_EXTENSIONS = [
@@ -54,11 +54,12 @@ class CustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             CenterCrop((320, 256)),
+            RandomCrop((256, 192)),
             Resize(resize, Image.BILINEAR),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             ToTensor(),
             Normalize(mean=mean, std=std),
-            AddGaussianNoise()
+            # AddGaussianNoise()
         ])
 
     def __call__(self, image):
