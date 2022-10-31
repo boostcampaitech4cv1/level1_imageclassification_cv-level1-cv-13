@@ -168,3 +168,6 @@ cython_debug/
 .profile
 .wget-hsts
 input
+baseline/v2/wandb
+baseline/v2/model
+.netrc
