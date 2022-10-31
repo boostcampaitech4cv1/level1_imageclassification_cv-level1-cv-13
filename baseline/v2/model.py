@@ -33,6 +33,67 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
+# Noise studey efficientnet_b4 custom module
+class NsEfnB4(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b4_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=1792, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+# Noise studey efficientnet_b5 custom module
+class NsEfnB5(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b5_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=2048, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+# Noise studey efficientnet_b7 custom module
+class NsEfnB7(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b7_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=2560, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+
 
 # Custom Model Template
 class MyModel(nn.Module):
