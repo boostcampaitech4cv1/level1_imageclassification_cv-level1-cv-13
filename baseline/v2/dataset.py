@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomCrop
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomCrop, RandomHorizontalFlip, RandomGrayscale
 # centercrop : 중앙 기준으로 크롭, colorjitter 컬러 변경
 
 IMG_EXTENSIONS = [
@@ -24,6 +24,7 @@ def is_image_file(filename):
 class Basepreprocessing:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
+            CenterCrop((440, 320)),
             Resize(resize, Image.BILINEAR),
             ToTensor(),
             Normalize(mean=mean, std=std),
@@ -37,6 +38,9 @@ class RealAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
+            ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
+            RandomGrayscale(p = 0.3),
+            RandomHorizontalFlip(p = 0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
         ])
@@ -312,6 +316,7 @@ class TestDataset(Dataset):
     def __init__(self, img_paths, resize, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)):
         self.img_paths = img_paths
         self.transform = Compose([
+            CenterCrop((440, 320)),
             Resize(resize, Image.BILINEAR),
             ToTensor(),
             Normalize(mean=mean, std=std),
