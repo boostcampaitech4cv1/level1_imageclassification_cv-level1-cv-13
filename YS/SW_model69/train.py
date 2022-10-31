@@ -18,15 +18,23 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset import MaskBaseDataset
 from loss import create_criterion
 import torchvision.models as model
+import copy
 import wandb
+wandb.login() # 각자 WandB 로그인 하기
+# 9eee70600a60d9d41eecef494a78a696bd12d252
 
-'''wandb.init(project="test-project", entity="cv13")
-
-wandb.config = {
-  "learning_rate": 0.001,
-  "epochs": 50,
-  "batch_size": 64
-}'''
+# 🐝 initialise a wandb run
+wandb.init(
+    project="SW_bestmodel_imbSampler_o2rabbit", # 프로젝트 이름 "모델_버전_성명"
+    config = {
+    "lr": 0.001,
+    "epochs": 100,
+    "batch_size": 128,
+    "optimizer" : "Adam",
+    "resize" : [224, 224],
+    "criterion" : 'cross_entropy'
+    }
+ )
 
 
 def seed_everything(seed):
@@ -108,17 +116,47 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
 
-    # -- augmentation
-    transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
+    # 데이터셋 분리
+    train_set, val_set = dataset.split_dataset()
+    train_set = train_set.dataset
+    val_set = val_set.dataset
+    
+    # augmentation set 생성
+    train_set_aug = copy.deepcopy(train_set)
+
+    # -- preprocessing --train_set
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
-        mean=dataset.mean,
-        std=dataset.std,
+        mean=train_set.mean,
+        std=train_set.std,
     )
-    dataset.set_transform(transform)
-
-    # -- data_loader
-    train_set, val_set = dataset.split_dataset()
+    train_set.set_transform(transform)
+    
+    # -- preprocessing --val_set
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
+    transform = transform_module(
+        resize=args.resize,
+        mean=val_set.mean,
+        std=val_set.std,
+    )
+    val_set.set_transform(transform)
+    
+    
+    # augmentation 적용
+    transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
+    transform_aug = transform_module_aug(
+        resize=[224, 224],
+        mean=train_set_aug.mean,
+        std=train_set_aug.std,
+    )
+    train_set_aug.set_transform(transform_aug)
+    
+    # train_set + augmentaion_set
+    train_set = train_set + train_set_aug
+    
+    # # -- data_loader
+    # train_set, val_set = dataset.split_dataset()
 
     train_loader = DataLoader(
         train_set,

@@ -19,8 +19,19 @@ IMG_EXTENSIONS = [
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
+class Basepreprocessing:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            Resize(resize, Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+        ])
 
-class BaseAugmentation:
+    def __call__(self, image):
+        return self.transform(image)
+    
+
+class RealAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
