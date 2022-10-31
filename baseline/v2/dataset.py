@@ -21,7 +21,7 @@ def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
 
-class BaseAugmentation:
+class Basepreprocessing:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
@@ -31,6 +31,19 @@ class BaseAugmentation:
 
     def __call__(self, image):
         return self.transform(image)
+    
+
+class RealAugmentation:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            Resize(resize, Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+
 
 # 노이즈를 넣는 방법 중 하나
 class AddGaussianNoise(object):
