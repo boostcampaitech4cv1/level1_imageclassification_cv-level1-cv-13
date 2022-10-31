@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import timm
 
 
 class BaseModel(nn.Module):
@@ -49,4 +50,23 @@ class MyModel(nn.Module):
         1. 위에서 정의한 모델 아키텍쳐를 forward propagation 을 진행해주세요
         2. 결과로 나온 output 을 return 해주세요
         """
+        return x
+
+# Noise studey efficientnet_b4 custom module
+class NsEfnB4(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b4_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=1792, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
         return x

@@ -128,7 +128,7 @@ def train(data_dir, model_dir, args):
     train_set_aug = copy.deepcopy(train_set)
 
     # -- preprocessing --train_set
-    transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
         mean=train_set.mean,
@@ -137,7 +137,7 @@ def train(data_dir, model_dir, args):
     train_set.set_transform(transform)
     
     # -- preprocessing --val_set
-    transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
         mean=val_set.mean,
@@ -147,7 +147,7 @@ def train(data_dir, model_dir, args):
     
     
     # augmentation 적용
-    transform_module_aug = getattr(import_module("dataset"), 'BaseAugmentation')  # default: BaseAugmentation
+    transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
     transform_aug = transform_module_aug(
         resize=[224, 224],
         mean=train_set_aug.mean,
@@ -301,7 +301,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--epochs', type=int, default=config.epochs, help='number of epochs to train (default: 1)')
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
-    parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
+    parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
+    parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
