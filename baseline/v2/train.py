@@ -24,14 +24,14 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v1_wonguk", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_JN", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
     "epochs": 100,
-    "batch_size": 128,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [224, 224],
-    "criterion" : 'cross_entropy'
+    "criterion" : 'label_smoothing'
     }
  )
 
@@ -113,13 +113,18 @@ def train(data_dir, model_dir, args):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # -- dataset
-    dataset_module = getattr(import_module("dataset"), args.dataset)  # default: MaskBaseDataset
+    dataset_module = getattr(import_module("dataset"), args.agedataset)  # default: MaskBaseDataset
     dataset = dataset_module(
         data_dir=data_dir,
     )
-    num_classes = dataset.num_classes  # 18
-    
-    # 데이터셋 분리
+    #----------------------------------------------
+    # for category in ['Mask','Gender','Age']:
+    #     if category == 'Mask' or 'Age':
+    #         num_classes = 3
+    #     else:
+    #         num_classes = 2
+    num_classes = dataset.num_classes    
+        # 데이터셋 분리
     train_set, val_set = dataset.split_dataset()
     train_set = train_set.dataset
     val_set = val_set.dataset
@@ -149,7 +154,7 @@ def train(data_dir, model_dir, args):
     # augmentation 적용
     transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
     transform_aug = transform_module_aug(
-        resize=[224, 224],
+        resize=args.resize,
         mean=train_set_aug.mean,
         std=train_set_aug.std,
     )
@@ -164,7 +169,7 @@ def train(data_dir, model_dir, args):
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
-        num_workers=multiprocessing.cpu_count() // 2,
+        num_workers=multiprocessing.cpu_count() // 5,
         shuffle=True,
         pin_memory=use_cuda,
         drop_last=True,
@@ -175,7 +180,7 @@ def train(data_dir, model_dir, args):
     val_loader = DataLoader(
         val_set,
         batch_size=args.valid_batch_size,
-        num_workers=multiprocessing.cpu_count() // 2,
+        num_workers=multiprocessing.cpu_count() // 5,
         shuffle=False,
         pin_memory=use_cuda,
         drop_last=True,
@@ -276,6 +281,13 @@ def train(data_dir, model_dir, args):
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
+                
+                # if category == 'Mask':
+                #     torch.save(model.module.state_dict(), f"{save_dir}/mask_best.pth")
+                # elif category == 'Gender':
+                #     torch.save(model.module.state_dict(), f"{save_dir}/gender_best.pth")
+                # else:
+                #     torch.save(model.module.state_dict(), f"{save_dir}/age_best.pth")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
             torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
@@ -301,12 +313,13 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--epochs', type=int, default=config.epochs, help='number of epochs to train (default: 1)')
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
+    parser.add_argument('--agedataset', type=str, default='AgeDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')

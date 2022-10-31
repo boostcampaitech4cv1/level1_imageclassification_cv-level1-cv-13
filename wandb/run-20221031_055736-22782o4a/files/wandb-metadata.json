@@ -1,0 +1,24 @@
+{
+    "os": "Linux-4.4.0-59-generic-x86_64-with-glibc2.17",
+    "python": "3.8.13",
+    "heartbeatAt": "2022-10-31T05:57:38.312552",
+    "startedAt": "2022-10-31T05:57:36.995003",
+    "docker": null,
+    "gpu": "Tesla V100-PCIE-32GB",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/opt/ml/contest/v2/baseline/v2/train.py",
+    "codePath": "baseline/v2/train.py",
+    "git": {
+        "remote": "https://github.com/boostcampaitech4cv1/level1_imageclassification_cv-level1-cv-13.git",
+        "commit": "c0cbf77a9a61df0d24a7e6beafef9e1548ea6980"
+    },
+    "email": "wlssud132@gmail.com",
+    "root": "/opt/ml/contest/v2",
+    "host": "f617da07a5de",
+    "username": "root",
+    "executable": "/opt/conda/bin/python"
+}

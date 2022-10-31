@@ -59,7 +59,7 @@ class efficientnet_v2_l(nn.Module):
         #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
         #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
         
-        self.classifier = nn.Linear(1000, 18)
+        self.classifier = nn.Linear(1000, num_classes)
         #self.classifier = nn.Sequential(
             #nn.ReLU(),
             #nn.Dropout(0.2),
