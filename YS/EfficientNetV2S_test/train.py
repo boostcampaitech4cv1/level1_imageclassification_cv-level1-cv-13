@@ -11,6 +11,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
@@ -185,7 +186,19 @@ def train(data_dir, model_dir, args):
     model = torch.nn.DataParallel(model)
 
     # -- loss & metric
-    criterion = create_criterion(args.criterion)  # default: cross_entropy
+    num_ins = [2745, 2050, 415,
+            3660, 4085, 545,
+            549, 410, 83,
+            732, 817, 109,
+            549, 410, 83,
+            732, 817, 109]
+    cnl_weights = [1 - (x/(sum(num_ins))) for x in num_ins]
+    class_weights = torch.FloatTensor(cnl_weights).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights) 
+    
+    # baseline code
+    # criterion = create_criterion(args.criterion)  # default: cross_entropy
+
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
     optimizer = opt_module(
         filter(lambda p: p.requires_grad, model.parameters()),
@@ -304,7 +317,7 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
-    parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
+    # parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
     parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')

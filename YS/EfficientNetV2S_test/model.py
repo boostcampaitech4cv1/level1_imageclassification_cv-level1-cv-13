@@ -34,12 +34,14 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
+
 # Noise studey efficientnet_b4 custom module
 class efficientnet_v2_s(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
         self.efficientnet = efficientnet.efficientnet_v2_s(weights=True)
         self.fc = nn.Linear(in_features=1000, out_features=18)
+        
     def forward(self, x):
         x = self.efficientnet(x)
         x = self.fc(x)
