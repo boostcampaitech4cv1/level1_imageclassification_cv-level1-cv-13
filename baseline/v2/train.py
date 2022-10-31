@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
@@ -121,43 +121,38 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
     
-    # 데이터셋 분리
-    train_set, val_set = dataset.split_dataset()
-    train_set = train_set.dataset
-    val_set = val_set.dataset
-    
-    # augmentation set 생성
-    train_set_aug = copy.deepcopy(train_set)
 
-    # -- preprocessing --train_set
+  
+    # -- preprocessing --data_set
     transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
-        mean=train_set.mean,
-        std=train_set.std,
+        mean=dataset.mean,
+        std=dataset.std,
     )
-    train_set.set_transform(transform)
+    dataset.set_transform(transform)
     
-    # -- preprocessing --val_set
-    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
-    transform = transform_module(
-        resize=args.resize,
-        mean=val_set.mean,
-        std=val_set.std,
-    )
-    val_set.set_transform(transform)
-    
+    dataset_aug = copy.deepcopy(dataset)
     
     # augmentation 적용
     transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
     transform_aug = transform_module_aug(
-        resize=[224, 224],
-        mean=train_set_aug.mean,
-        std=train_set_aug.std,
+        resize=args.resize,
+        mean=dataset_aug.mean,
+        std=dataset_aug.std,
     )
-    train_set_aug.set_transform(transform_aug)
+    dataset_aug.set_transform(transform_aug)
     
+    
+    train_set,val_set = dataset.split_dataset() 
+    
+    # augmentation_set 생성
+    torch.manual_seed(42)
+    train_set_aug,val_set = dataset_aug.split_dataset() 
+    
+
     # train_set + augmentaion_set
+    # train_set = ConcatDataset([train_set,train_set_aug])
     train_set = train_set + train_set_aug
     
     # # -- data_loader
@@ -173,8 +168,6 @@ def train(data_dir, model_dir, args):
         drop_last=True,
     )
         
-    
-
     val_loader = DataLoader(
         val_set,
         batch_size=args.valid_batch_size,
@@ -184,8 +177,6 @@ def train(data_dir, model_dir, args):
         drop_last=False,
     )
 
-
-    
     # -- model
     model_module = getattr(import_module("model"), args.model)  # default: BaseModel
     model = model_module(
