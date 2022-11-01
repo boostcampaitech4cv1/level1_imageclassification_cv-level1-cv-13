@@ -24,11 +24,11 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v1_wonguk", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_wonguk_2", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 100,
-    "batch_size": 128,
+    "epochs": 60,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [224, 224],
     "criterion" : 'cross_entropy'
@@ -146,7 +146,7 @@ def train(data_dir, model_dir, args):
     
     # augmentation_set 생성
     torch.manual_seed(42)
-    train_set_aug,val_set = dataset_aug.split_dataset() 
+    train_set_aug,val_set_aug = dataset_aug.split_dataset() 
     
 
     # train_set + augmentaion_set
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
