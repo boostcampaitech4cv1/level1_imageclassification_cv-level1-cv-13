@@ -24,13 +24,13 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v1_wonguk", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_SW2", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 50,
-    "batch_size": 32,
+    "epochs": 100,
+    "batch_size": 128,
     "optimizer" : "Adam",
-    "resize" : [384, 384],
+    "resize" : [224, 224],
     "criterion" : 'cross_entropy'
     }
  )
@@ -201,6 +201,11 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
+
+    early_stop = 0
+    breaker = False
+    early_stop_arg = args.early_stop
+
     for epoch in range(args.epochs):
         # train loop
         model.train()
@@ -269,6 +274,7 @@ def train(data_dir, model_dir, args):
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
+                early_stop = 0
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
@@ -282,7 +288,18 @@ def train(data_dir, model_dir, args):
             logger.add_figure("results", figure, epoch)
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
-        
+                
+            if val_acc < best_val_acc:
+                early_stop += 1
+                if early_stop == early_stop_arg:
+                    breaker = True
+                    print(f'--------epoch {epoch} early stopping--------')
+                    print(f'--------epoch {epoch} early stopping--------')                                       
+                    break
+        if breaker == True:
+            print(f'--------epoch {epoch} early stopping--------')
+            print(f'--------epoch {epoch} early stopping--------')
+            break        
 
             # Optional
             wandb.watch(model)
@@ -299,8 +316,8 @@ if __name__ == '__main__':
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
-    parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='efficientnet_v2_s', help='model type (default: BaseModel)')
+    parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
+    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
@@ -312,6 +329,7 @@ if __name__ == '__main__':
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
+    parser.add_argument('--early_stop', type=int, default=10, help='number of early_stop (default : 10')
 
     args = parser.parse_args()
     print(args)
