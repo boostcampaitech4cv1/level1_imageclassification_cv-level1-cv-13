@@ -25,7 +25,7 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v1_wonguk", # 프로젝트 이름 "모델_버전_성명"
+    project="EfficientNetV2s_YS", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
     "epochs": 50,
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     # parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--lr_decay_step', type=int, default=15, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
 
