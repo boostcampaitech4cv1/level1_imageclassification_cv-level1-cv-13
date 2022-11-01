@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.modules.loss import _WeightedLoss
+from torch import Tensor
+from typing import Optional
 
 
 # https://discuss.pytorch.org/t/is-this-a-correct-implementation-for-focal-loss-in-pytorch/43327/8
@@ -68,22 +71,40 @@ class F1Loss(nn.Module):
         f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
         return 1 - f1.mean()
 
-# 가중손실함수
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_ins = [2745, 2050, 415,
+
+class weight_cross_entropy(_WeightedLoss):
+
+    __constants__ = ['ignore_index', 'reduction', 'label_smoothing']
+    ignore_index: int
+    label_smoothing: float
+
+    def __init__(self, weight: Optional[Tensor] = None, size_average=None, ignore_index: int = -100,
+                 reduce=None, reduction: str = 'mean', label_smoothing: float = 0.0) -> None:
+        super(weight_cross_entropy, self).__init__(weight, size_average, reduce, reduction)
+        self.ignore_index = ignore_index
+        self.label_smoothing = label_smoothing
+        self.num_ins = [
+            2745, 2050, 415,
             3660, 4085, 545,
             549, 410, 83,
             732, 817, 109,
             549, 410, 83,
             732, 817, 109]
-cnl_weights = [1 - (x/(sum(num_ins))) for x in num_ins]
-class_weights = torch.FloatTensor(cnl_weights).to(device)
+        self.weights = [1 - (x/(sum(self.num_ins))) for x in self.num_ins]
+        self.class_weights = torch.FloatTensor(self.weights).cuda()
+
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return F.cross_entropy(input, target, weight=self.class_weights,
+                               ignore_index=self.ignore_index, reduction=self.reduction,
+                               label_smoothing=self.label_smoothing)
+
 
 _criterion_entrypoints = {
-    'cross_entropy': nn.CrossEntropyLoss(weight=class_weights),
+    'cross_entropy': nn.CrossEntropyLoss,
     'focal': FocalLoss,
     'label_smoothing': LabelSmoothingLoss,
-    'f1': F1Loss
+    'f1': F1Loss,
+    'weight_cross_entropy' : weight_cross_entropy
 }
 
 

@@ -32,7 +32,7 @@ wandb.init(
     "batch_size": 32,
     "optimizer" : "Adam",
     "resize" : [384, 384],
-    "criterion" : 'cross_entropy'
+    "criterion" : 'weight_cross_entropy'
     }
  )
 
