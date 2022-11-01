@@ -27,7 +27,7 @@ wandb.init(
     project="Effi_v2_l_SW2", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 50,
+    "epochs": 100,
     "batch_size": 64,
     "optimizer" : "SGD",
     "resize" : [224, 224],
@@ -202,6 +202,7 @@ def train(data_dir, model_dir, args):
     early_stop = 0
     breaker = False
     early_stop_arg = args.early_stop
+
     for epoch in range(args.epochs):
         # train loop
         model.train()
@@ -285,10 +286,12 @@ def train(data_dir, model_dir, args):
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
                 
-            if val_acc <= best_val_acc:
+            if val_acc < best_val_acc:
                 early_stop += 1
                 if early_stop == early_stop_arg:
-                    breaker = True                                       
+                    breaker = True
+                    print(f'--------epoch {epoch} early stopping--------')
+                    print(f'--------epoch {epoch} early stopping--------')                                       
                     break
         if breaker == True:
             print(f'--------epoch {epoch} early stopping--------')
