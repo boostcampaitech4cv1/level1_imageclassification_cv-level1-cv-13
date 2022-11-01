@@ -159,3 +159,59 @@ class efficientnet_v2_l(nn.Module):
         x = self.backbone(x)
         x = self.classifier(x)
         return x
+
+class efficientnet_v2_s(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = models.efficientnet_v2_s(pretrained=True)
+        #self.backbone = models.efficientnet_b3(pretrained=True)
+        #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
+        #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
+        
+        self.classifier = nn.Linear(1000, 18)
+        #self.classifier = nn.Sequential(
+            #nn.ReLU(),
+            #nn.Dropout(0.2),
+            #nn.Linear(1000, 18)
+            #nn.ReLU(),
+            #nn.Linear(512, 256),
+            #nn.ReLU(),
+            #nn.Linear(256,128),
+            #nn.ReLU(),
+            #nn.Linear(128,18)
+            #)
+        #512로 줄여서
+        #batchnorm()
+        #relu()
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.classifier(x)
+        return x
+
+class efficientnet_v2_m(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = models.efficientnet_v2_m(pretrained=True)
+        #self.backbone = models.efficientnet_b3(pretrained=True)
+        #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
+        #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
+        
+        self.classifier = nn.Linear(1000, 18)
+        #self.classifier = nn.Sequential(
+            #nn.ReLU(),
+            #nn.Dropout(0.2),
+            #nn.Linear(1000, 18)
+            #nn.ReLU(),
+            #nn.Linear(512, 256),
+            #nn.ReLU(),
+            #nn.Linear(256,128),
+            #nn.ReLU(),
+            #nn.Linear(128,18)
+            #)
+        #512로 줄여서
+        #batchnorm()
+        #relu()
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.classifier(x)
+        return x

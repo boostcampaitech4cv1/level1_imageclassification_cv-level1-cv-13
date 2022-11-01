@@ -97,15 +97,6 @@ class weight_cross_entropy(_WeightedLoss):
                                label_smoothing=self.label_smoothing)
 
 
-'''num_ins = [
-            2745, 2050, 415,
-            3660, 4085, 545,
-            549, 410, 83,
-            732, 817, 109,
-            549, 410, 83,
-            732, 817, 109]
-weights = torch.FloatTensor([1 - (x/(sum(num_ins))) for x in num_ins])'''
-
 _criterion_entrypoints = {
     'cross_entropy': nn.CrossEntropyLoss,
     'focal': FocalLoss,
