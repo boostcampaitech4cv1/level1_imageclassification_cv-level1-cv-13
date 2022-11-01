@@ -24,14 +24,23 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
+<<<<<<< HEAD
     project="Effi_v2_l_wonguk_2", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
     "epochs": 60,
     "batch_size": 64,
     "optimizer" : "Adam",
+=======
+    project="Effi_v2_l_SW2", # 프로젝트 이름 "모델_버전_성명"
+    config = {
+    "lr": 0.001,
+    "epochs": 150,
+    "batch_size": 64,
+    "optimizer" : "SGD",
+>>>>>>> origin/SW2
     "resize" : [224, 224],
-    "criterion" : 'cross_entropy'
+    "criterion" : 'weight_cross_entropy'
     }
  )
 
@@ -146,7 +155,11 @@ def train(data_dir, model_dir, args):
     
     # augmentation_set 생성
     torch.manual_seed(42)
+<<<<<<< HEAD
     train_set_aug,val_set_aug = dataset_aug.split_dataset() 
+=======
+    train_set_aug,val_set2 = dataset_aug.split_dataset() 
+>>>>>>> origin/SW2
     
 
     # train_set + augmentaion_set
@@ -198,6 +211,11 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
+
+    early_stop = 0
+    breaker = False
+    early_stop_arg = args.early_stop
+
     for epoch in range(args.epochs):
         # train loop
         model.train()
@@ -266,6 +284,7 @@ def train(data_dir, model_dir, args):
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
+                early_stop = 0
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
@@ -279,7 +298,18 @@ def train(data_dir, model_dir, args):
             logger.add_figure("results", figure, epoch)
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
-        
+                
+            if val_acc < best_val_acc:
+                early_stop += 1
+                if early_stop == early_stop_arg:
+                    breaker = True
+                    print(f'--------epoch {epoch} early stopping--------')
+                    print(f'--------epoch {epoch} early stopping--------')                                       
+                    break
+        if breaker == True:
+            print(f'--------epoch {epoch} early stopping--------')
+            print(f'--------epoch {epoch} early stopping--------')
+            break        
 
             # Optional
             wandb.watch(model)
@@ -309,6 +339,7 @@ if __name__ == '__main__':
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
+    parser.add_argument('--early_stop', type=int, default=10, help='number of early_stop (default : 10')
 
     args = parser.parse_args()
     print(args)

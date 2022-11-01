@@ -3,7 +3,6 @@ import torch.nn.functional as F
 import timm
 import torchvision.models as models
 
-
 class BaseModel(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -132,8 +131,7 @@ class NsEfnB4(nn.Module):
         x = self.efficientnet(x)
 
         return x
-    
-    
+
 class efficientnet_v2_l(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
