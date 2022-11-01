@@ -39,7 +39,7 @@ class RealAugmentation:
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
             ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
-            RandomGrayscale(p = 0.3),
+            #RandomGrayscale(p = 0.3),
             RandomHorizontalFlip(p = 0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),

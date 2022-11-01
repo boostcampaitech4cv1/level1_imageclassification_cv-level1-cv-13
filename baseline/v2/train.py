@@ -27,11 +27,11 @@ wandb.init(
     project="Effi_v2_l_SW2", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 100,
+    "epochs": 150,
     "batch_size": 64,
     "optimizer" : "SGD",
     "resize" : [224, 224],
-    "criterion" : 'cross_entropy'
+    "criterion" : 'weight_cross_entropy'
     }
  )
 
@@ -146,7 +146,7 @@ def train(data_dir, model_dir, args):
     
     # augmentation_set 생성
     torch.manual_seed(42)
-    train_set_aug,val_set = dataset_aug.split_dataset() 
+    train_set_aug,val_set2 = dataset_aug.split_dataset() 
     
 
     # train_set + augmentaion_set
