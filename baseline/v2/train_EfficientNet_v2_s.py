@@ -33,7 +33,7 @@ wandb.init(
     config = {
     "lr": 0.0001,
     "epochs": 200,
-    "batch_size": 64,
+    "batch_size": 32,
     "optimizer" : "Adam",
     "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
@@ -71,8 +71,14 @@ config = wandb.config
 
     복사해서 loss 파일 제일 아래에 넣기
     넣은 후에 _criterion_entrypoints 사전 목록에 아래 추가
+    
     'weight_cross_entropy' : weight_cross_entropy
     
+    아래 모듈 loss에 import
+
+    from torch import Tensor
+    from typing import Callable, Optional
+
     '''
 
 
