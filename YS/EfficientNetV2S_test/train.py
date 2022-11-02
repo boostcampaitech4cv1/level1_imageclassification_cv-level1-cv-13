@@ -104,6 +104,22 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+# Weighted Random Sampler
+def Weight_Random_Sampler(dataset, train_or_val_set):
+    y_dataset_indices = train_or_val_set.indices # train_set 의 인덱스를 변수로 선언
+    
+    # train_set 의 모든 인덱스 당 라벨을 y_train list 에 담은 후 각 요소값을 weight 로 변환
+    y_train = [] 
+    for i in y_dataset_indices:
+        image_transform, multi_class_label = dataset[i]
+        y_train.append(multi_class_label)
+    
+    class_sample_count = np.array([len(np.where(y_train == t)[0]) for t in np.unique(y_train)])
+    weight = 1. / class_sample_count
+    samples_weight = np.array([weight[t] for t in y_train])
+    samples_weight = torch.from_numpy(samples_weight)
+    sampler = WeightedRandomSampler(samples_weight.type('torch.DoubleTensor'), len(samples_weight))
+    return sampler
 
 
 def train(data_dir, model_dir, args):
@@ -159,28 +175,15 @@ def train(data_dir, model_dir, args):
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
 
-
-    # Weighted Random Sampler
-    y_train_indices = train_set.indices # train_set 의 인덱스를 변수로 선언
-    
-    # train_set 의 모든 인덱스 당 라벨을 y_train list 에 담은 후 각 요소값을 weight 로 변환
-    y_train = [] 
-    for i in y_train_indices:
-        image_transform, multi_class_label = dataset[i]
-        y_train.append(multi_class_label)
-    
-    class_sample_count = np.array([len(np.where(y_train == t)[0]) for t in np.unique(y_train)])
-    weight = 1. / class_sample_count
-    samples_weight = np.array([weight[t] for t in y_train])
-    samples_weight = torch.from_numpy(samples_weight)
-    sampler = WeightedRandomSampler(samples_weight.type('torch.DoubleTensor'), len(samples_weight))
-
+    # WeightRandomSampler
+    train_sampler = Weight_Random_Sampler(dataset, train_set)
+    val_sampler = Weight_Random_Sampler(dataset, val_set)
 
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
-        sampler=sampler,
+        sampler=train_sampler,
         shuffle=False, # sampler 를 사용하면 shuffle=False 가 되어야한다.
         pin_memory=use_cuda,
         drop_last=True,
@@ -190,7 +193,7 @@ def train(data_dir, model_dir, args):
         val_set,
         batch_size=args.valid_batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
-        sampler=sampler,
+        sampler=val_sampler,
         shuffle=False,
         pin_memory=use_cuda,
         drop_last=False,
