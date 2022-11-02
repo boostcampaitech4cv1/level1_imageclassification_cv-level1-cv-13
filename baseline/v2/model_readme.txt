@@ -162,8 +162,14 @@ New best model for val accuracy : 79.83%! saving the best model..
 
 model114
 
+Epoch[28/200](460/472) || training loss 0.02624 || training accuracy 99.45% || lr 0.0001
+Calculating validation results...
+[Val] acc : 98.62%, loss: 0.025 || best acc : 98.89%, best loss: 0.013
+0 Epoch left until early stopping..
 
-
+lr decay를 없앴더니 오히려 더 적은 epoch에서 끝났다
+Finished	0.6779	75.1429
+약간 더 안좋은 성능을 보이는 것 같다
 
 
 

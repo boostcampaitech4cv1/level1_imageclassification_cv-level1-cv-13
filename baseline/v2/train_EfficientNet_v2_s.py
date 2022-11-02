@@ -29,11 +29,11 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_s_lr_decay_delete", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_aug3", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.0001,
     "epochs": 200,
-    "batch_size": 64,
+    "batch_size": 16,
     "optimizer" : "Adam",
     "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
@@ -161,7 +161,7 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
     
-
+    dataset_aug3 = copy.deepcopy(dataset)
   
     # -- preprocessing --data_set
     transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
@@ -182,6 +182,16 @@ def train(data_dir, model_dir, args):
         std=dataset_aug.std,
     )
     dataset_aug.set_transform(transform_aug)
+
+    # augmentation3 적용
+    transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation_3)  # default: RealAugmentation
+    transform_aug3 = transform_module_aug(
+        resize=args.resize,
+        mean=dataset_aug.mean,
+        std=dataset_aug.std,
+    )
+    dataset_aug3.set_transform(transform_aug3)
+    train_set_aug3,val_set3 = dataset_aug3.split_dataset()
     
     
     train_set,val_set = dataset.split_dataset() 
@@ -193,7 +203,7 @@ def train(data_dir, model_dir, args):
 
     # train_set + augmentaion_set
     # train_set = ConcatDataset([train_set,train_set_aug])
-    train_set = train_set + train_set_aug
+    train_set = train_set + train_set_aug + train_set_aug3
     
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
@@ -352,15 +362,16 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
+    parser.add_argument('--RealAugmentation_3', type=str, default='RealAugmentation_3', help='data augmentation type (default: RealAugmentation_3)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='efficientnet_v2_s', help='model type (default: BaseModel)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=500, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
 
