@@ -29,11 +29,11 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_s", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_s_lr_decay_delete", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.0001,
     "epochs": 200,
-    "batch_size": 32,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
@@ -71,7 +71,7 @@ config = wandb.config
 
     복사해서 loss 파일 제일 아래에 넣기
     넣은 후에 _criterion_entrypoints 사전 목록에 아래 추가
-    
+
     'weight_cross_entropy' : weight_cross_entropy
     
     아래 모듈 loss에 import
@@ -322,6 +322,7 @@ def train(data_dir, model_dir, args):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
+            print(f'{early_stop_arg-early_stop-1} Epoch left until early stopping..')
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
@@ -359,7 +360,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--lr_decay_step', type=int, default=500, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
 
