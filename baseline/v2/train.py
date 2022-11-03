@@ -24,16 +24,19 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_l_wonguk_2", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_wonguk_batch 1", # 프로젝트 이름 "모델_버전_성명"
     config = {
-    "lr": 0.0002,
+    "lr": 0.0001,
     "epochs": 150,
-    "batch_size": 16,
+    "batch_size": 1,
     "optimizer" : "Adam",
     "resize" : [224, 224],
     "criterion" : 'weight_cross_entropy'
     }
  )
+
+
+
 
 
 # Copy your config 

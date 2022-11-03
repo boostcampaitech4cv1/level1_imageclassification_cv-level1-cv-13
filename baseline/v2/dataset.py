@@ -40,7 +40,7 @@ class RealAugmentation:
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
             ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
-            #RandomGrayscale(p = 0.3),
+            RandomGrayscale(p = 0.3),
             RandomHorizontalFlip(p = 0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
@@ -118,9 +118,9 @@ class AgeLabels(int, Enum):
         except Exception:
             raise ValueError(f"Age value should be numeric, {value}")
 
-        if value < 30:
+        if value < 26:
             return cls.YOUNG
-        elif value < 60:
+        elif value < 58:
             return cls.MIDDLE
         else:
             return cls.OLD

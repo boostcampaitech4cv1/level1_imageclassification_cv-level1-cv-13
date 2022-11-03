@@ -29,9 +29,9 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_s", # 프로젝트 이름 "모델_버전_성명"
+    project="vit_base_patch16_384", # 프로젝트 이름 "모델_버전_성명"
     config = {
-    "lr": 0.0001,
+    "lr": 0.0005,
     "epochs": 200,
     "batch_size": 32,
     "optimizer" : "Adam",
@@ -354,7 +354,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='efficientnet_v2_s', help='model type (default: BaseModel)')
+    parser.add_argument('--model', type=str, default='vit_base_patch16_384', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
