@@ -191,5 +191,52 @@ model116에서 batch 64 resize 224,224 로 수정하고
 randomseed42를 추가해서 돌렸다...
 
 
+model119
+model118에서 age 밀어서 다시 돌림.. 26,58로 밀었다
+
+Epoch[16/200](700/708) || training loss 0.02116 || training accuracy 99.45% || lr 0.0001
+Calculating validation results...
+[Val] acc : 97.91%, loss: 0.042 || best acc : 98.44%, best loss: 0.032
+0 Epoch left until early stopping..
+
+--------epoch 16 early stopping--------
+
+Finished	0.7133	77.0476
+기존보다 조금 낮게 나왔다
+
+model120
+
+efficientnet v2 s (pretrained=True)
+
++ fc_layer(1000, 18)
+
+- input size(384, 384)
+- batch size - 64
+- valid_batch_size - 1000
+
+default
+
+- epochs - 31
+- optimizer - Adam
+- criterion - weight_cross_entropy
+- Preprocessing-Basepreprocessing
+- Realaugmentation
+- seed - default (42)
+- lr - default - default (0.0005)
+- val_ratio - default (0.2)
+- lr_decay_step -default (20)
+- log_interval - default (20)
+- 나이를 변화를 줌 ( yong<26, middle<58, old)
+
+Epoch[30/200](460/472) || training loss 0.02476 || training accuracy 99.61% || lr 0.00025
+
+Calculating validation results...
+
+[Val] acc : 97.09%, loss: 0.067 || best acc : 98.25%, best loss: 0.038
+
+f1 : 0.7193 accuracy : 77.0159
+
+기용이 모델에서 나이만 30,57로 밀어서 실험
+
 
 
