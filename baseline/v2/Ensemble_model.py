@@ -29,11 +29,11 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="vit_base_patch16_384", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_aug3", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.0005,
     "epochs": 200,
-    "batch_size": 32,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
@@ -71,7 +71,7 @@ config = wandb.config
 
     복사해서 loss 파일 제일 아래에 넣기
     넣은 후에 _criterion_entrypoints 사전 목록에 아래 추가
-    
+
     'weight_cross_entropy' : weight_cross_entropy
     
     아래 모듈 loss에 import
@@ -161,7 +161,7 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
     
-
+    #dataset_aug3 = copy.deepcopy(dataset)
   
     # -- preprocessing --data_set
     transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
@@ -182,8 +182,19 @@ def train(data_dir, model_dir, args):
         std=dataset_aug.std,
     )
     dataset_aug.set_transform(transform_aug)
+
+    # augmentation3 적용
+    '''transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation_3)  # default: RealAugmentation
+    transform_aug3 = transform_module_aug(
+        resize=args.resize,
+        mean=dataset_aug.mean,
+        std=dataset_aug.std,
+    )
+    dataset_aug3.set_transform(transform_aug3)
     
+    train_set_aug3,val_set3 = dataset_aug3.split_dataset()'''
     
+    #torch.manual_seed(42)
     train_set,val_set = dataset.split_dataset() 
     
     # augmentation_set 생성
@@ -193,7 +204,7 @@ def train(data_dir, model_dir, args):
 
     # train_set + augmentaion_set
     # train_set = ConcatDataset([train_set,train_set_aug])
-    train_set = train_set + train_set_aug
+    train_set = train_set + train_set_aug #+ train_set_aug3
     
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
@@ -322,19 +333,21 @@ def train(data_dir, model_dir, args):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
+            
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
-                
-            if val_acc < best_val_acc:
-                early_stop += 1
+            print(f'{early_stop_arg-early_stop} Epoch left until early stopping..')                
+            if val_acc < best_val_acc:                
                 if early_stop == early_stop_arg:
                     breaker = True
                     print(f'--------epoch {epoch} early stopping--------')
                     print(f'--------epoch {epoch} early stopping--------')                                       
                     break
+                early_stop += 1
+
         if breaker == True:
             break        
 
@@ -351,6 +364,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
+    parser.add_argument('--RealAugmentation_3', type=str, default='RealAugmentation_3', help='data augmentation type (default: RealAugmentation_3)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')

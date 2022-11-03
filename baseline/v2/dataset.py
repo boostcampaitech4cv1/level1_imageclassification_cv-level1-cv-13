@@ -44,6 +44,21 @@ class RealAugmentation:
             RandomHorizontalFlip(p = 0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+
+class RealAugmentation_3:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            RandomCrop((440,320)),
+            Resize(resize, Image.BILINEAR),
+            ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
+            RandomGrayscale(p = 0.3),
+            RandomHorizontalFlip(p = 0.5),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
             RandomHorizontalFlip(p=0.5),
             ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
         ])
@@ -120,7 +135,7 @@ class AgeLabels(int, Enum):
 
         if value < 26:
             return cls.YOUNG
-        elif value < 58:
+        elif value < 57:
             return cls.MIDDLE
         else:
             return cls.OLD
