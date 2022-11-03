@@ -33,9 +33,9 @@ wandb.init(
     config = {
     "lr": 0.0001,
     "epochs": 200,
-    "batch_size": 16,
+    "batch_size": 64,
     "optimizer" : "Adam",
-    "resize" : [384, 384],
+    "resize" : [224, 224],
     "criterion" : 'weight_cross_entropy'
     }
  )
@@ -191,9 +191,10 @@ def train(data_dir, model_dir, args):
         std=dataset_aug.std,
     )
     dataset_aug3.set_transform(transform_aug3)
+    
     train_set_aug3,val_set3 = dataset_aug3.split_dataset()
     
-    
+    torch.manual_seed(42)
     train_set,val_set = dataset.split_dataset() 
     
     # augmentation_set 생성

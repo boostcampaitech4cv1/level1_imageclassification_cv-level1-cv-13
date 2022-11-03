@@ -172,6 +172,24 @@ Finished	0.6779	75.1429
 약간 더 안좋은 성능을 보이는 것 같다
 
 
+model116
+aug3 추가해서 0.0001 16batch로 384,384로 돌렸으나
+randomseed42를 aug3에 적용하지 않아서 취소하고 다시 돌림
+
+Epoch[16/200](2820/2835) || training loss 0.06616 || training accuracy 98.75% || lr 0.0001
+Calculating validation results...
+[Val] acc : 98.47%, loss: 0.027 || best acc : 98.86%, best loss: 0.013
+6 Epoch left until early stopping..
+
+
+model117
+오류
+
+
+model118
+model116에서 batch 64 resize 224,224 로 수정하고
+randomseed42를 추가해서 돌렸다...
+
 
 
 
