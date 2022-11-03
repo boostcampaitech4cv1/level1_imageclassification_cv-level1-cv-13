@@ -205,6 +205,9 @@ Finished	0.7133	77.0476
 기존보다 조금 낮게 나왔다
 
 model120
+val batch 1000으로 해서 오류
+
+model121
 
 efficientnet v2 s (pretrained=True)
 
@@ -212,7 +215,7 @@ efficientnet v2 s (pretrained=True)
 
 - input size(384, 384)
 - batch size - 64
-- valid_batch_size - 1000
+- valid_batch_size - 250
 
 default
 

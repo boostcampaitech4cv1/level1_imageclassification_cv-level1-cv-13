@@ -367,7 +367,7 @@ if __name__ == '__main__':
     parser.add_argument('--RealAugmentation_3', type=str, default='RealAugmentation_3', help='data augmentation type (default: RealAugmentation_3)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
-    parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
+    parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
     parser.add_argument('--model', type=str, default='efficientnet_v2_s', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
