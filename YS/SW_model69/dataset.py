@@ -8,8 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomCrop, RandomHorizontalFlip, RandomGrayscale
-# centercrop : 중앙 기준으로 크롭, colorjitter 컬러 변경
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip
 
 IMG_EXTENSIONS = [
     ".jpg", ".JPG", ".jpeg", ".JPEG", ".png",
@@ -20,15 +19,12 @@ IMG_EXTENSIONS = [
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
-
 class Basepreprocessing:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            CenterCrop((440, 320)),
             Resize(resize, Image.BILINEAR),
             ToTensor(),
-            Normalize(mean=mean, std=std)
-            
+            Normalize(mean=mean, std=std),
         ])
 
     def __call__(self, image):
@@ -39,9 +35,6 @@ class RealAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
-            ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
-            RandomGrayscale(p = 0.3),
-            RandomHorizontalFlip(p = 0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
         ])
@@ -49,25 +42,7 @@ class RealAugmentation:
     def __call__(self, image):
         return self.transform(image)
 
-class RealAugmentation_3:
-    def __init__(self, resize, mean, std, **args):
-        self.transform = Compose([
-            RandomCrop((440,320)),
-            Resize(resize, Image.BILINEAR),
-            ColorJitter(brightness=(0.9,1.1), contrast = (0.9,1.1)),
-            RandomGrayscale(p = 0.3),
-            RandomHorizontalFlip(p = 0.5),
-            ToTensor(),
-            Normalize(mean=mean, std=std),
-            RandomHorizontalFlip(p=0.5),
-            ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
-        ])
 
-    def __call__(self, image):
-        return self.transform(image)
-
-
-# 노이즈를 넣는 방법 중 하나
 class AddGaussianNoise(object):
     """
         transform 에 없는 기능들은 이런식으로 __init__, __call__, __repr__ 부분을
@@ -88,13 +63,26 @@ class AddGaussianNoise(object):
 class CustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            CenterCrop((320, 256)),
-            RandomCrop((256, 192)),
             Resize(resize, Image.BILINEAR),
+            RandomHorizontalFlip(p=0.5),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             ToTensor(),
             Normalize(mean=mean, std=std),
-            # AddGaussianNoise()
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+
+
+class CustomAugmentation_SW:
+    def __init__(self, resize, mean= 0.5, std = 1, **args):
+        self.transform = Compose([
+            CenterCrop((440, 320)),
+            Resize(resize, Image.BILINEAR),
+            RandomHorizontalFlip(p=0.5),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+            #AddGaussianNoise()
         ])
 
     def __call__(self, image):
@@ -134,9 +122,9 @@ class AgeLabels(int, Enum):
         except Exception:
             raise ValueError(f"Age value should be numeric, {value}")
 
-        if value < 26:
+        if value < 30:
             return cls.YOUNG
-        elif value < 57:
+        elif value < 60:
             return cls.MIDDLE
         else:
             return cls.OLD
@@ -279,7 +267,6 @@ class MaskSplitByProfileDataset(MaskBaseDataset):
         구현은 val_ratio 에 맞게 train / val 나누는 것을 이미지 전체가 아닌 사람(profile)에 대해서 진행하여 indexing 을 합니다
         이후 `split_dataset` 에서 index 에 맞게 Subset 으로 dataset 을 분기합니다.
     """
-    # v1 은 이미지 파일을 다 불러와서 랜덤하게 나눴는데 v2 는 사람 기준으로 랜덤하게 나눈다.
 
     def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
         self.indices = defaultdict(list)
@@ -306,7 +293,7 @@ class MaskSplitByProfileDataset(MaskBaseDataset):
         for phase, indices in split_profiles.items():
             for _idx in indices:
                 profile = profiles[_idx]
-                img_folder = os.path.join(self.data_dir, profile) # 경로 지정해줌
+                img_folder = os.path.join(self.data_dir, profile)
                 for file_name in os.listdir(img_folder):
                     _file_name, ext = os.path.splitext(file_name)
                     if _file_name not in self._file_names:  # "." 로 시작하는 파일 및 invalid 한 파일들은 무시합니다
@@ -335,6 +322,7 @@ class TestDataset(Dataset):
     def __init__(self, img_paths, resize, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)):
         self.img_paths = img_paths
         self.transform = Compose([
+            CenterCrop((440, 320)),
             Resize(resize, Image.BILINEAR),
             ToTensor(),
             Normalize(mean=mean, std=std),

@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.models import efficientnet
 import timm
 import torchvision.models as models
 
@@ -35,21 +36,14 @@ class BaseModel(nn.Module):
         return self.fc(x)
 
 # Noise studey efficientnet_b4 custom module
-class NsEfnB4(nn.Module):
+class efficientnet_v2_s(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
-        self.efficientnet = timm.create_model("tf_efficientnet_b4_ns", pretrained=True)
-        self.efficientnet.classifier = nn.Sequential(
-                                            nn.Linear(in_features=1792, out_features=1024, bias=True),
-                                            nn.ReLU(),
-                                            nn.Linear(in_features=1024, out_features=512, bias=True),
-                                            nn.ReLU(),
-                                            nn.Linear(in_features=512, out_features=256, bias=True),
-                                            nn.ReLU(),
-                                            nn.Linear(in_features=256, out_features=num_classes),
-                                            )
+        self.efficientnet = efficientnet.efficientnet_v2_s(weights=True)
+        self.fc = nn.Linear(in_features=1000, out_features=18)
     def forward(self, x):
         x = self.efficientnet(x)
+        x = self.fc(x)
 
         return x
 
@@ -137,34 +131,6 @@ class efficientnet_v2_l(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
         self.backbone = models.efficientnet_v2_l(pretrained=True)
-        #self.backbone = models.efficientnet_b3(pretrained=True)
-        #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
-        #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
-        
-        self.classifier = nn.Linear(1000, 18)
-        #self.classifier = nn.Sequential(
-            #nn.ReLU(),
-            #nn.Dropout(0.2),
-            #nn.Linear(1000, 18)
-            #nn.ReLU(),
-            #nn.Linear(512, 256),
-            #nn.ReLU(),
-            #nn.Linear(256,128),
-            #nn.ReLU(),
-            #nn.Linear(128,18)
-            #)
-        #512로 줄여서
-        #batchnorm()
-        #relu()
-    def forward(self, x):
-        x = self.backbone(x)
-        x = self.classifier(x)
-        return x
-
-class efficientnet_v2_s(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        self.backbone = models.efficientnet_v2_s(pretrained=True)
         #self.backbone = models.efficientnet_b3(pretrained=True)
         #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
         #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
