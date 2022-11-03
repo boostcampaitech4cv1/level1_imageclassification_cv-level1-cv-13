@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
@@ -24,20 +24,16 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_l_wonguk_batch 1", # 프로젝트 이름 "모델_버전_성명"
+    project="test_YS", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 100,
-    "batch_size": 128,
+    "epochs": 50,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [224, 224],
-    "criterion" : 'weight_cross_entropy'
+    "criterion" : 'cross_entropy'
     }
  )
-
-
-
-
 
 # Copy your config 
 config = wandb.config
@@ -125,39 +121,44 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
     
+    # 데이터셋 분리
+    train_set, val_set = dataset.split_dataset()
+    train_set = train_set.dataset
+    val_set = val_set.dataset
+    
+    # augmentation set 생성
+    train_set_aug = copy.deepcopy(train_set)
 
-  
-    # -- preprocessing --data_set
+    # -- preprocessing --train_set
     transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
-        mean=dataset.mean,
-        std=dataset.std,
+        mean=train_set.mean,
+        std=train_set.std,
     )
-    dataset.set_transform(transform)
+    train_set.set_transform(transform)
     
-    dataset_aug = copy.deepcopy(dataset)
+    # -- preprocessing --val_set
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
+    transform = transform_module(
+        resize=args.resize,
+        mean=val_set.mean,
+        std=val_set.std,
+    )
+    val_set.set_transform(transform)
+    
     
     # augmentation 적용
     transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
     transform_aug = transform_module_aug(
-        resize=args.resize,
-        mean=dataset_aug.mean,
-        std=dataset_aug.std,
+        resize=[224, 224],
+        mean=train_set_aug.mean,
+        std=train_set_aug.std,
     )
-    dataset_aug.set_transform(transform_aug)
+    train_set_aug.set_transform(transform_aug)
     
-    
-    train_set,val_set = dataset.split_dataset() 
-    
-    # augmentation_set 생성
-    torch.manual_seed(42)
-    train_set_aug,val_set2 = dataset_aug.split_dataset() 
-    
-
     # train_set + augmentaion_set
-    # train_set = ConcatDataset([train_set,train_set_aug])
-    # train_set = train_set + train_set_aug
+    train_set = train_set + train_set_aug
     
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
@@ -172,15 +173,19 @@ def train(data_dir, model_dir, args):
         drop_last=True,
     )
         
+    
+
     val_loader = DataLoader(
         val_set,
         batch_size=args.valid_batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
         shuffle=False,
         pin_memory=use_cuda,
-        drop_last=False,
+        drop_last=True,
     )
 
+
+    
     # -- model
     model_module = getattr(import_module("model"), args.model)  # default: BaseModel
     model = model_module(
@@ -205,11 +210,6 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
-
-    early_stop = 0
-    breaker = False
-    early_stop_arg = args.early_stop
-
     for epoch in range(args.epochs):
         # train loop
         model.train()
@@ -278,7 +278,6 @@ def train(data_dir, model_dir, args):
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
-                early_stop = 0
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
@@ -287,22 +286,12 @@ def train(data_dir, model_dir, args):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
-            print(f'{early_stop_arg}-{early_stop} Epoch left until early stopping\n')
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
-                
-            if val_acc < best_val_acc:
-                early_stop += 1
-                if early_stop == early_stop_arg:
-                    breaker = True
-                    print(f'--------epoch {epoch} early stopping--------')
-                    print(f'--------epoch {epoch} early stopping--------')                                       
-                    break
-        if breaker == True:
-            break        
+        
 
             # Optional
             wandb.watch(model)
@@ -320,7 +309,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
@@ -332,7 +321,6 @@ if __name__ == '__main__':
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
-    parser.add_argument('--early_stop', type=int, default=10, help='number of early_stop (default : 10')
 
     args = parser.parse_args()
     print(args)

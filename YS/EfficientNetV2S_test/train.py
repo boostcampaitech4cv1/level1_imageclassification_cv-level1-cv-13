@@ -11,8 +11,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader, ConcatDataset, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
@@ -24,20 +25,16 @@ wandb.login() # 각자 WandB 로그인 하기
 
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_l_wonguk_batch 1", # 프로젝트 이름 "모델_버전_성명"
+    project="EfficientNetV2s_YS", # 프로젝트 이름 "모델_버전_성명"
     config = {
     "lr": 0.001,
-    "epochs": 100,
-    "batch_size": 128,
+    "epochs": 50,
+    "batch_size": 32,
     "optimizer" : "Adam",
-    "resize" : [224, 224],
+    "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
     }
  )
-
-
-
-
 
 # Copy your config 
 config = wandb.config
@@ -107,6 +104,22 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+# Weighted Random Sampler
+def Weight_Random_Sampler(dataset, train_or_val_set):
+    y_dataset_indices = train_or_val_set.indices # train_set 의 인덱스를 변수로 선언
+    
+    # train_set 의 모든 인덱스 당 라벨을 y_train list 에 담은 후 각 요소값을 weight 로 변환
+    y_train = [] 
+    for i in y_dataset_indices:
+        image_transform, multi_class_label = dataset[i]
+        y_train.append(multi_class_label)
+    
+    class_sample_count = np.array([len(np.where(y_train == t)[0]) for t in np.unique(y_train)])
+    weight = 1. / class_sample_count
+    samples_weight = np.array([weight[t] for t in y_train])
+    samples_weight = torch.from_numpy(samples_weight)
+    sampler = WeightedRandomSampler(samples_weight.type('torch.DoubleTensor'), len(samples_weight))
+    return sampler
 
 
 def train(data_dir, model_dir, args):
@@ -152,7 +165,7 @@ def train(data_dir, model_dir, args):
     
     # augmentation_set 생성
     torch.manual_seed(42)
-    train_set_aug,val_set2 = dataset_aug.split_dataset() 
+    train_set_aug,val_set = dataset_aug.split_dataset() 
     
 
     # train_set + augmentaion_set
@@ -162,12 +175,16 @@ def train(data_dir, model_dir, args):
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
 
+    # WeightRandomSampler
+    train_sampler = Weight_Random_Sampler(dataset, train_set)
+    val_sampler = Weight_Random_Sampler(dataset, val_set)
 
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
-        shuffle=True,
+        sampler=train_sampler,
+        shuffle=False, # sampler 를 사용하면 shuffle=False 가 되어야한다.
         pin_memory=use_cuda,
         drop_last=True,
     )
@@ -176,6 +193,7 @@ def train(data_dir, model_dir, args):
         val_set,
         batch_size=args.valid_batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
+        sampler=val_sampler,
         shuffle=False,
         pin_memory=use_cuda,
         drop_last=False,
@@ -189,7 +207,19 @@ def train(data_dir, model_dir, args):
     model = torch.nn.DataParallel(model)
 
     # -- loss & metric
+    num_ins = [2745, 2050, 415,
+            3660, 4085, 545,
+            549, 410, 83,
+            732, 817, 109,
+            549, 410, 83,
+            732, 817, 109]
+    cnl_weights = [1 - (x/(sum(num_ins))) for x in num_ins]
+    class_weights = torch.FloatTensor(cnl_weights).to(device)
+    # criterion = nn.CrossEntropyLoss(weight=class_weights) 
+    
+    # baseline code
     criterion = create_criterion(args.criterion)  # default: cross_entropy
+
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
     optimizer = opt_module(
         filter(lambda p: p.requires_grad, model.parameters()),
@@ -205,11 +235,6 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
-
-    early_stop = 0
-    breaker = False
-    early_stop_arg = args.early_stop
-
     for epoch in range(args.epochs):
         # train loop
         model.train()
@@ -278,7 +303,6 @@ def train(data_dir, model_dir, args):
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
-                early_stop = 0
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
@@ -287,22 +311,12 @@ def train(data_dir, model_dir, args):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
-            print(f'{early_stop_arg}-{early_stop} Epoch left until early stopping\n')
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             print()
             wandb.log({"val_loss": val_loss,"val_acc": val_acc})
-                
-            if val_acc < best_val_acc:
-                early_stop += 1
-                if early_stop == early_stop_arg:
-                    breaker = True
-                    print(f'--------epoch {epoch} early stopping--------')
-                    print(f'--------epoch {epoch} early stopping--------')                                       
-                    break
-        if breaker == True:
-            break        
+        
 
             # Optional
             wandb.watch(model)
@@ -319,20 +333,19 @@ if __name__ == '__main__':
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
-    parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
+    parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_s', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--lr_decay_step', type=int, default=15, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
-    parser.add_argument('--early_stop', type=int, default=10, help='number of early_stop (default : 10')
 
     args = parser.parse_args()
     print(args)
