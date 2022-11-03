@@ -22,26 +22,64 @@ import wandb
 wandb.login() # 각자 WandB 로그인 하기
 # 9eee70600a60d9d41eecef494a78a696bd12d252
 
+# 성우 0.0001 & 32
+# 원국 0.0005 & 32
+# 진녕 0.0001 & 64
+# 기용 0.0005 & 64
+
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_l_wonguk_batch 1", # 프로젝트 이름 "모델_버전_성명"
+    project="vit_base_patch16_384", # 프로젝트 이름 "모델_버전_성명"
     config = {
-    "lr": 0.0001,
-    "epochs": 150,
-    "batch_size": 1,
+    "lr": 0.0005,
+    "epochs": 200,
+    "batch_size": 32,
     "optimizer" : "Adam",
-    "resize" : [224, 224],
+    "resize" : [384, 384],
     "criterion" : 'weight_cross_entropy'
     }
  )
 
-
-
-
-
 # Copy your config 
 config = wandb.config
 
+'''class weight_cross_entropy(_WeightedLoss):
+
+    __constants__ = ['ignore_index', 'reduction', 'label_smoothing']
+    ignore_index: int
+    label_smoothing: float
+
+    def __init__(self, weight: Optional[Tensor] = None, size_average=None, ignore_index: int = -100,
+                 reduce=None, reduction: str = 'mean', label_smoothing: float = 0.0) -> None:
+        super(weight_cross_entropy, self).__init__(weight, size_average, reduce, reduction)
+        self.ignore_index = ignore_index
+        self.label_smoothing = label_smoothing
+        self.num_ins = [
+            2745, 2050, 415,
+            3660, 4085, 545,
+            549, 410, 83,
+            732, 817, 109,
+            549, 410, 83,
+            732, 817, 109]
+        self.weights = [1 - (x/(sum(self.num_ins))) for x in self.num_ins]
+        self.class_weights = torch.FloatTensor(self.weights).cuda()
+
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return F.cross_entropy(input, target, weight=self.class_weights,
+                               ignore_index=self.ignore_index, reduction=self.reduction,
+                               label_smoothing=self.label_smoothing)
+
+    복사해서 loss 파일 제일 아래에 넣기
+    넣은 후에 _criterion_entrypoints 사전 목록에 아래 추가
+    
+    'weight_cross_entropy' : weight_cross_entropy
+    
+    아래 모듈 loss에 import
+
+    from torch import Tensor
+    from typing import Callable, Optional
+
+    '''
 
 
 def seed_everything(seed):
@@ -315,8 +353,8 @@ if __name__ == '__main__':
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
-    parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
+    parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
+    parser.add_argument('--model', type=str, default='vit_base_patch16_384', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
