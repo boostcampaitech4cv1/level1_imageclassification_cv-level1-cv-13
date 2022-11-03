@@ -22,24 +22,64 @@ import wandb
 wandb.login() # 각자 WandB 로그인 하기
 # 9eee70600a60d9d41eecef494a78a696bd12d252
 
+# 성우 0.0001 & 32
+# 원국 0.0005 & 32
+# 진녕 0.0001 & 64
+# 기용 0.0005 & 64
+
 # 🐝 initialise a wandb run
 wandb.init(
-    project="Effi_v2_l_SW2", # 프로젝트 이름 "모델_버전_성명"
+    project="Effi_v2_l_aug3", # 프로젝트 이름 "모델_버전_성명"
     config = {
-    "lr": 0.001,
-    "epochs": 100,
-    "batch_size": 128,
+    "lr": 0.0001,
+    "epochs": 200,
+    "batch_size": 64,
     "optimizer" : "Adam",
     "resize" : [224, 224],
     "criterion" : 'weight_cross_entropy'
     }
  )
 
-
 # Copy your config 
 config = wandb.config
 
+'''class weight_cross_entropy(_WeightedLoss):
 
+    __constants__ = ['ignore_index', 'reduction', 'label_smoothing']
+    ignore_index: int
+    label_smoothing: float
+
+    def __init__(self, weight: Optional[Tensor] = None, size_average=None, ignore_index: int = -100,
+                 reduce=None, reduction: str = 'mean', label_smoothing: float = 0.0) -> None:
+        super(weight_cross_entropy, self).__init__(weight, size_average, reduce, reduction)
+        self.ignore_index = ignore_index
+        self.label_smoothing = label_smoothing
+        self.num_ins = [
+            2745, 2050, 415,
+            3660, 4085, 545,
+            549, 410, 83,
+            732, 817, 109,
+            549, 410, 83,
+            732, 817, 109]
+        self.weights = [1 - (x/(sum(self.num_ins))) for x in self.num_ins]
+        self.class_weights = torch.FloatTensor(self.weights).cuda()
+
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return F.cross_entropy(input, target, weight=self.class_weights,
+                               ignore_index=self.ignore_index, reduction=self.reduction,
+                               label_smoothing=self.label_smoothing)
+
+    복사해서 loss 파일 제일 아래에 넣기
+    넣은 후에 _criterion_entrypoints 사전 목록에 아래 추가
+
+    'weight_cross_entropy' : weight_cross_entropy
+    
+    아래 모듈 loss에 import
+
+    from torch import Tensor
+    from typing import Callable, Optional
+
+    '''
 
 
 def seed_everything(seed):
@@ -105,7 +145,6 @@ def increment_path(path, exist_ok=False):
         return f"{path}{n}"
 
 
-
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
 
@@ -122,7 +161,7 @@ def train(data_dir, model_dir, args):
     )
     num_classes = dataset.num_classes  # 18
     
-
+    dataset_aug3 = copy.deepcopy(dataset)
   
     # -- preprocessing --data_set
     transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
@@ -143,8 +182,19 @@ def train(data_dir, model_dir, args):
         std=dataset_aug.std,
     )
     dataset_aug.set_transform(transform_aug)
+
+    # augmentation3 적용
+    transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation_3)  # default: RealAugmentation
+    transform_aug3 = transform_module_aug(
+        resize=args.resize,
+        mean=dataset_aug.mean,
+        std=dataset_aug.std,
+    )
+    dataset_aug3.set_transform(transform_aug3)
     
+    train_set_aug3,val_set3 = dataset_aug3.split_dataset()
     
+    torch.manual_seed(42)
     train_set,val_set = dataset.split_dataset() 
     
     # augmentation_set 생성
@@ -154,11 +204,10 @@ def train(data_dir, model_dir, args):
 
     # train_set + augmentaion_set
     # train_set = ConcatDataset([train_set,train_set_aug])
-    # train_set = train_set + train_set_aug
+    train_set = train_set + train_set_aug + train_set_aug3
     
     # # -- data_loader
     # train_set, val_set = dataset.split_dataset()
-
 
     train_loader = DataLoader(
         train_set,
@@ -175,7 +224,7 @@ def train(data_dir, model_dir, args):
         num_workers=multiprocessing.cpu_count() // 2,
         shuffle=False,
         pin_memory=use_cuda,
-        drop_last=False,
+        drop_last=True,
     )
 
     # -- model
@@ -284,7 +333,7 @@ def train(data_dir, model_dir, args):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
-            print(f'{early_stop_arg}-{early_stop} Epoch left until early stopping\n')
+            print(f'{early_stop_arg-early_stop-1} Epoch left until early stopping..')
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
@@ -314,10 +363,11 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
     parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
+    parser.add_argument('--RealAugmentation_3', type=str, default='RealAugmentation_3', help='data augmentation type (default: RealAugmentation_3)')
     parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
-    parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='NsEfnB4', help='model type (default: BaseModel)')
+    parser.add_argument('--valid_batch_size', type=int, default=250, help='input batch size for validing (default: 1000)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
     parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
