@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomCrop
 # centercrop : 중앙 기준으로 크롭, colorjitter 컬러 변경
 
 IMG_EXTENSIONS = [
@@ -21,7 +21,7 @@ def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
 
-class BaseAugmentation:
+class Basepreprocessing:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
             Resize(resize, Image.BILINEAR),
@@ -31,6 +31,20 @@ class BaseAugmentation:
 
     def __call__(self, image):
         return self.transform(image)
+    
+
+class RealAugmentation:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            CenterCrop((350, 250)),
+            Resize(resize, Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+
 
 # 노이즈를 넣는 방법 중 하나
 class AddGaussianNoise(object):
@@ -98,9 +112,9 @@ class AgeLabels(int, Enum):
         except Exception:
             raise ValueError(f"Age value should be numeric, {value}")
 
-        if value < 30:
+        if value < 26:
             return cls.YOUNG
-        elif value < 60:
+        elif value<58:
             return cls.MIDDLE
         else:
             return cls.OLD

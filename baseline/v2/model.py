@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import timm
+import torchvision.models as models
 
 
 class BaseModel(nn.Module):
@@ -32,6 +34,67 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
+# Noise studey efficientnet_b4 custom module
+class NsEfnB4(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b4_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=1792, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+# Noise studey efficientnet_b5 custom module
+class NsEfnB5(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b5_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=2048, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+# Noise studey efficientnet_b7 custom module
+class NsEfnB7(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b7_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=2560, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+
+
+
 
 # Custom Model Template
 class MyModel(nn.Module):
@@ -49,4 +112,81 @@ class MyModel(nn.Module):
         1. 위에서 정의한 모델 아키텍쳐를 forward propagation 을 진행해주세요
         2. 결과로 나온 output 을 return 해주세요
         """
+        return x
+
+# Noise studey efficientnet_b4 custom module
+class NsEfnB4(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.efficientnet = timm.create_model("tf_efficientnet_b4_ns", pretrained=True)
+        self.efficientnet.classifier = nn.Sequential(
+                                            nn.Linear(in_features=1792, out_features=1024, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=1024, out_features=512, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=512, out_features=256, bias=True),
+                                            nn.ReLU(),
+                                            nn.Linear(in_features=256, out_features=num_classes),
+                                            )
+    def forward(self, x):
+        x = self.efficientnet(x)
+
+        return x
+    
+    
+class efficientnet_v2_l(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = models.efficientnet_v2_l(pretrained=True)
+        #self.backbone = models.efficientnet_b3(pretrained=True)
+        #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
+        #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
+        
+        self.classifier = nn.Linear(1000, 18)
+        #self.classifier = nn.Sequential(
+            #nn.ReLU(),
+            #nn.Dropout(0.2),
+            #nn.Linear(1000, 18)
+            #nn.ReLU(),
+            #nn.Linear(512, 256),
+            #nn.ReLU(),
+            #nn.Linear(256,128),
+            #nn.ReLU(),
+            #nn.Linear(128,18)
+            #)
+        #512로 줄여서
+        #batchnorm()
+        #relu()
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.classifier(x)
+        return x
+    
+
+class efficientnet_v2_s(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = models.efficientnet_v2_s(pretrained=True)
+        #self.backbone = models.efficientnet_b3(pretrained=True)
+        #weight = 'EfficientNet_V2_L_Weights.IMAGENET1K_V1'
+        #self.backbone = models.efficientnet_v2_l(weights='IMAGENET1K_V1')
+        
+        self.classifier = nn.Linear(1000, 18)
+        #self.classifier = nn.Sequential(
+            #nn.ReLU(),
+            #nn.Dropout(0.2),
+            #nn.Linear(1000, 18)
+            #nn.ReLU(),
+            #nn.Linear(512, 256),
+            #nn.ReLU(),
+            #nn.Linear(256,128),
+            #nn.ReLU(),
+            #nn.Linear(128,18)
+            #)
+        #512로 줄여서
+        #batchnorm()
+        #relu()
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.classifier(x)
         return x

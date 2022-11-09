@@ -12,11 +12,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
 from loss import create_criterion
+import copy
+import wandb
+wandb.login() # 각자 WandB 로그인 하기
+# 9eee70600a60d9d41eecef494a78a696bd12d252
+
+# 🐝 initialise a wandb run
+wandb.init(
+    project="Effi_v1_GY_1", # 프로젝트 이름 "모델_버전_성명"
+    config = {
+    "lr": 0.001,
+    "epochs": 50,
+    "batch_size": 64,
+    "optimizer" : "Adam",
+    "resize" : [224, 224],
+    "criterion" : 'cross_entropy'
+    }
+ )
+
+# Copy your config 
+config = wandb.config
+
 
 
 def seed_everything(seed):
@@ -97,18 +118,43 @@ def train(data_dir, model_dir, args):
         data_dir=data_dir,
     )
     num_classes = dataset.num_classes  # 18
+    
 
-    # -- augmentation
-    transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
+  
+    # -- preprocessing --data_set
+    transform_module = getattr(import_module("dataset"), args.preprocessing)  # default: preprocessing
     transform = transform_module(
         resize=args.resize,
         mean=dataset.mean,
         std=dataset.std,
     )
     dataset.set_transform(transform)
+    
+    dataset_aug = copy.deepcopy(dataset)
+    
+    # augmentation 적용
+    transform_module_aug = getattr(import_module("dataset"), args.RealAugmentation)  # default: RealAugmentation
+    transform_aug = transform_module_aug(
+        resize=args.resize,
+        mean=dataset_aug.mean,
+        std=dataset_aug.std,
+    )
+    dataset_aug.set_transform(transform_aug)
+    
+    
+    train_set,val_set = dataset.split_dataset() 
+    
+    # augmentation_set 생성
+    torch.manual_seed(42)
+    train_set_aug,val_set = dataset_aug.split_dataset() 
+    
 
-    # -- data_loader
-    train_set, val_set = dataset.split_dataset()
+    # train_set + augmentaion_set
+    # train_set = ConcatDataset([train_set,train_set_aug])
+    train_set = train_set + train_set_aug
+    
+    # # -- data_loader
+    # train_set, val_set = dataset.split_dataset()
 
     train_loader = DataLoader(
         train_set,
@@ -118,14 +164,14 @@ def train(data_dir, model_dir, args):
         pin_memory=use_cuda,
         drop_last=True,
     )
-
+        
     val_loader = DataLoader(
         val_set,
         batch_size=args.valid_batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
         shuffle=False,
         pin_memory=use_cuda,
-        drop_last=True,
+        drop_last=False,
     )
 
     # -- model
@@ -232,6 +278,11 @@ def train(data_dir, model_dir, args):
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             print()
+            wandb.log({"val_loss": val_loss,"val_acc": val_acc})
+        
+
+            # Optional
+            wandb.watch(model)
 
 
 if __name__ == '__main__':
@@ -239,17 +290,18 @@ if __name__ == '__main__':
 
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
-    parser.add_argument('--epochs', type=int, default=1, help='number of epochs to train (default: 1)')
+    parser.add_argument('--epochs', type=int, default=config.epochs, help='number of epochs to train (default: 1)')
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
-    parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
-    parser.add_argument("--resize", nargs="+", type=list, default=[128, 96], help='resize size for image when training')
-    parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
+    parser.add_argument('--preprocessing', type=str, default='Basepreprocessing', help='data augmentation type (default: Basepreprocessing)')
+    parser.add_argument('--RealAugmentation', type=str, default='RealAugmentation', help='data augmentation type (default: RealAugmentation)')
+    parser.add_argument("--resize", nargs="+", type=list, default=config.resize, help='resize size for image when training')
+    parser.add_argument('--batch_size', type=int, default=config.batch_size, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='BaseModel', help='model type (default: BaseModel)')
-    parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: SGD)')
-    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
+    parser.add_argument('--model', type=str, default='efficientnet_v2_l', help='model type (default: BaseModel)')
+    parser.add_argument('--optimizer', type=str, default=config.optimizer, help='optimizer type (default: SGD)')
+    parser.add_argument('--lr', type=float, default=config.lr, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
-    parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
+    parser.add_argument('--criterion', type=str, default=config.criterion, help='criterion type (default: cross_entropy)')
     parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
@@ -265,3 +317,4 @@ if __name__ == '__main__':
     model_dir = args.model_dir
 
     train(data_dir, model_dir, args)
+    wandb.finish()
